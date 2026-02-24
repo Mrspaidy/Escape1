@@ -1,29 +1,26 @@
 FROM ubuntu:16.04
 
-ENV DEBIAN_FRONTEND=noninteractive
-
 RUN apt-get update && apt-get install -y \
-    openssh-server \
+    xinetd \
     cowsay \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && cp /usr/games/cowsay /bin/
 
-RUN mkdir /var/run/sshd
 RUN mkdir /ctf
 WORKDIR /ctf
+RUN useradd -M -d /ctf ctf
 
+RUN chmod 600 /usr/bin/env
+
+RUN echo "Connection blocked" > /etc/banner_fail
+COPY ctf.xinetd /etc/xinetd.d/ctf
 COPY ./src /ctf/
-
-RUN chmod +x /ctf/challenge.sh
-
-RUN useradd -m -d /ctf -s /ctf/challenge.sh ctf && \
-    echo "ctf:ctfpass" | chpasswd
 
 RUN chown -R root:ctf /ctf && \
     chmod -R 750 /ctf && \
     chmod 740 /ctf/flag.txt
 
-RUN sed -i 's/#PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
+ENTRYPOINT []
+CMD ["/usr/sbin/xinetd", "-dontfork"]
 
-EXPOSE 22
-
-CMD ["/usr/sbin/sshd", "-D"]
+EXPOSE 9999
